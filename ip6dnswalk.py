@@ -24,20 +24,29 @@ import dns.resolver
 import sys
 
 nibbles = ["{0:x}".format(i) for i in range(0, 16)]
-arpa = "ip6.arpa."
+arpa = ["ip6.arpa."]
+
+def to_ip6(host):
+	host = [host[i-4:i] for i in [i*4 for i in range(8, 0, -1)]]
+	[block.reverse() for block in host]
+	return ":".join(["".join(block) for block in host])
 
 def walk(zone):
 	hosts = {}
 	for nibble in nibbles:
 		try:
-			name = nibble + "." + zone
-			answers = dns.resolver.query(name + "." + arpa, "PTR")
-			hosts[name] = [ptr.target.to_text() for ptr in answers]
+			host = [nibble] + zone
+			answers = dns.resolver.query(".".join(host + arpa), "PTR")
+			hosts[to_ip6(host)] = [ptr.target.to_text() for ptr in answers]
 		except dns.resolver.NoAnswer:
-			if len(name) < 63:
-				hosts.update(walk(name))
+			if len(host) < 32:
+				hosts.update(walk(host))
 		except dns.resolver.NXDOMAIN:
 			pass
 	return hosts
 
-print(walk(sys.argv[1]))
+prefix = sys.argv[1].split(".")
+prefix.reverse()
+hosts = walk(prefix)
+for host in sorted(hosts.keys()):
+	print(host, " ".join(sorted(hosts[host])))
