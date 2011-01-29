@@ -50,16 +50,12 @@ def hide(line):
 	lines = []
 	match = data.match(line)
 	if match is not None:
-		host = match.group(1).split(".")[1:]
+		host = match.group(1).split(".")
 
-		# add top-level wildcard RR
-		if len(rrs) == 0:
-			push([], lines)
-
-		# add wildcard RRs between RRs
+		# add wildcard RRs at the top level and between RRs
 		while len(host) > 0:
-			push(host, lines)
 			host = host[1:]
+			push(host, lines)
 	return lines
 
 if __name__ == "__main__":
