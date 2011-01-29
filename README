@@ -1,0 +1,7 @@
+ip6dnswalk:
+	Walks ip6.arpa tree for a given IPv6 prefix
+
+	Note:
+		Some authoritative DNS servers such as PowerDNS do not implement
+		RFC2136 §7.16 correctly: http://wiki.powerdns.com/trac/ticket/127
+		This has the side effect of preventing DNS walking from working.
