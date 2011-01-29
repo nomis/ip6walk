@@ -29,12 +29,14 @@ import sys
 
 nibbles = ["{0:x}".format(i) for i in range(0, 16)]
 arpa = ["ip6.arpa."]
+res = dns.resolver.Resolver()
 
 def to_ip6(host):
 	host = [list(reversed(host[i-4:i])) for i in range(32, 0, -4)]
 	return ":".join(["".join(block) for block in host])
 
 def walk(zone, verbose=False):
+	global res
 	hosts = {}
 	for nibble in nibbles:
 		try:
@@ -43,7 +45,7 @@ def walk(zone, verbose=False):
 			if verbose:
 				print("".join(reversed(host)), file=sys.stderr, end=" ")
 
-			answers = dns.resolver.query(".".join(host + arpa), "PTR")
+			answers = res.query(".".join(host + arpa), "PTR")
 
 			if len(host) < 32:
 				# Handle answers for PTRs not at correct host length as NoAnswer
@@ -82,9 +84,14 @@ def from_prefix(parser, args):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Walks ip6.arpa tree for a given IPv6 prefix')
+	parser.add_argument('-r', '--resolver', action='append', help='Use specified resolver(s)')
 	parser.add_argument('-v', '--verbose', action='store_true', help='Outputs every PTR query performed to stderr')
 	parser.add_argument('prefix', help='IPv6 prefix with subnet on 4-bit boundary in the range /0../124')
 	args = parser.parse_args()
+
+	if args.resolver is not None:
+		res = dns.resolver.Resolver(configure=False)
+		res.nameservers = args.resolver
 
 	hosts = walk(from_prefix(parser, args), args.verbose)
 	for host in sorted(hosts.keys()):
