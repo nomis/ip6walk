@@ -1,7 +1,14 @@
 ip6dnswalk:
 	Walks ip6.arpa tree for a given IPv6 prefix
-
+	
 	Note:
 		Some authoritative DNS servers such as PowerDNS do not implement
 		RFC1035 correctly: http://wiki.powerdns.com/trac/ticket/127
 		This has the side effect of preventing DNS walking from working.
+
+ip6dnshide:
+	Hides empty terminals in an ip6.arpa zone (preventing walking)
+	
+	Prevents ip6dnswalk from working (unless the secret used to create the
+	wildcards is known because then more information that could be used to
+	infer NXDOMAIN is available).
