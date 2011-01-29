@@ -20,6 +20,10 @@
 #	Or, point your browser to http://www.gnu.org/copyleft/gpl.html
 
 from __future__ import print_function
+import argparse
+import binascii
+import dns.exception
+import dns.inet
 import dns.resolver
 import sys
 
@@ -27,26 +31,63 @@ nibbles = ["{0:x}".format(i) for i in range(0, 16)]
 arpa = ["ip6.arpa."]
 
 def to_ip6(host):
-	host = [host[i-4:i] for i in range(32, 0, -4)]
-	[block.reverse() for block in host]
+	host = [list(reversed(host[i-4:i])) for i in range(32, 0, -4)]
 	return ":".join(["".join(block) for block in host])
 
-def walk(zone):
+def walk(zone, verbose=False):
 	hosts = {}
 	for nibble in nibbles:
 		try:
 			host = [nibble] + zone
+
+			if verbose:
+				print("".join(reversed(host)), file=sys.stderr, end=" ")
+
 			answers = dns.resolver.query(".".join(host + arpa), "PTR")
+
+			if len(host) < 32:
+				# Handle answers for PTRs not at correct host length as NoAnswer
+				raise dns.resolver.NoAnswer
+
+			if verbose:
+				count = len(answers)
+				print("{0} PTR RR{1}".format(count, "" if count == 1 else "s"), file=sys.stderr)
+
 			hosts[to_ip6(host)] = [ptr.target.to_text() for ptr in answers]
 		except dns.resolver.NoAnswer:
+			if verbose:
+				print("NoAnswer", file=sys.stderr)
+
 			if len(host) < 32:
-				hosts.update(walk(host))
+				hosts.update(walk(host, verbose))
 		except dns.resolver.NXDOMAIN:
-			pass
+			if verbose:
+				print("NXDOMAIN", file=sys.stderr)
 	return hosts
 
-prefix = sys.argv[1].split(".")
-prefix.reverse()
-hosts = walk(prefix)
-for host in sorted(hosts.keys()):
-	print(host, " ".join(sorted(hosts[host])))
+def from_prefix(parser, args):
+	try:
+		(host, size) = args.prefix.split("/", 1)
+		host = list(binascii.hexlify(dns.inet.inet_pton(dns.inet.AF_INET6, host)))
+		size = int(size)
+	except ValueError:
+		parser.error("Prefix missing subnet size")
+	except dns.exception.SyntaxError:
+		parser.error("Invalid IPv6 address")
+
+	if size not in range(0, 128, 4):
+		parser.error("Unsupported prefix size, must be on a 4-bit boundary in the range /0../124")
+
+	return list(reversed(host[:size/4]))
+
+if __name__ == "__main__":
+	parser = argparse.ArgumentParser(description='Walks ip6.arpa tree for a given IPv6 prefix')
+	parser.add_argument('-v', '--verbose', action='store_true', help='Outputs every PTR query performed to stderr')
+	parser.add_argument('prefix', help='IPv6 prefix with subnet on 4-bit boundary in the range /0../124')
+	args = parser.parse_args()
+
+	hosts = walk(from_prefix(parser, args), args.verbose)
+	for host in sorted(hosts.keys()):
+		print(host, " ".join(sorted(hosts[host])))
+
+	parser.exit()
