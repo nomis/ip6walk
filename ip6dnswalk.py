@@ -27,7 +27,7 @@ nibbles = ["{0:x}".format(i) for i in range(0, 16)]
 arpa = ["ip6.arpa."]
 
 def to_ip6(host):
-	host = [host[i-4:i] for i in [i*4 for i in range(8, 0, -1)]]
+	host = [host[i-4:i] for i in range(32, 0, -4)]
 	[block.reverse() for block in host]
 	return ":".join(["".join(block) for block in host])
 
