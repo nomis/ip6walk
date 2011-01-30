@@ -27,3 +27,11 @@ ip6dnshide:
 		[ This technically valid behaviour would make walking the zone
 		impractical. It'd be mislead into thinking all possible IPs
 		exist. ]
+
+Credits:
+	Roland Dobbins
+		http://mailman.nanog.org/pipermail/nanog/2011-January/031124.html
+		
+		For giving me the idea that reverse DNS enumeration (based on my
+		existing knowledge that PowerDNS doesn't do NXDOMAIN properly)
+		is actually possible.
