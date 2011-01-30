@@ -11,4 +11,19 @@ ip6dnshide:
 	
 	Prevents ip6dnswalk from working (unless the secret used to create the
 	wildcards is known because then more information that could be used to
-	infer NXDOMAIN is available).
+	infer NXDOMAIN is available) by causing queries that would have returned
+	NXDOMAIN to return NOERROR using some extra records.
+	
+	Warning:
+		If you're thinking of modifying a DNS server to replace NOERROR
+		with NXDOMAIN for ip6.arpa zones, please don't as this isn't
+		valid behaviour.
+		[ This bogus behaviour would completely prevent walking. ]
+		
+		You can however replace NXDOMAIN with NOERROR. There's no
+		requirement to actually have a terminal RR at or below the
+		name being queried - NXDOMAIN just asserts that there isn't
+		one. Doing this for non-ip6.arpa zones would give no benefit.
+		[ This technically valid behaviour would make walking the zone
+		impractical. It'd be mislead into thinking all possible IPs
+		exist. ]
