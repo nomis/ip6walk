@@ -35,7 +35,7 @@ def to_ip6(host):
 	host = [list(reversed(host[i-4:i])) for i in range(32, 0, -4)]
 	return ":".join(["".join(block) for block in host])
 
-def walk(zone, verbose=False):
+def walk(zone, verbose=False, timeout=True):
 	global res
 	hosts = {}
 	for nibble in nibbles:
@@ -61,10 +61,17 @@ def walk(zone, verbose=False):
 				print("NoAnswer", file=sys.stderr)
 
 			if len(host) < 32:
-				hosts.update(walk(host, verbose))
+				hosts.update(walk(host, verbose, timeout))
 		except dns.resolver.NXDOMAIN:
 			if verbose:
 				print("NXDOMAIN", file=sys.stderr)
+		except dns.resolver.Timeout:
+			if timeout:
+				if not verbose:
+					print("".join(reversed(host)) + " Timeout", file=sys.stderr)
+				sys.exit(1)
+			if verbose:
+				print("Timeout", file=sys.stderr)
 	return hosts
 
 def from_prefix(parser, args):
@@ -84,6 +91,7 @@ def from_prefix(parser, args):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Walks ip6.arpa tree for a given IPv6 prefix')
+	parser.add_argument('-i', '--ignore-timeout', action='store_true', help='Don\'t abort on timeout')
 	parser.add_argument('-r', '--resolver', action='append', help='Use specified resolver(s)')
 	parser.add_argument('-v', '--verbose', action='store_true', help='Outputs every PTR query performed to stderr')
 	parser.add_argument('prefix', help='IPv6 prefix with subnet on 4-bit boundary in the range /0../124')
@@ -93,7 +101,7 @@ if __name__ == "__main__":
 		res = dns.resolver.Resolver(configure=False)
 		res.nameservers = args.resolver
 
-	hosts = walk(from_prefix(parser, args), args.verbose)
+	hosts = walk(from_prefix(parser, args), args.verbose, not args.ignore_timeout)
 	for host in sorted(hosts.keys()):
 		print(host, " ".join(sorted(hosts[host])))
 
