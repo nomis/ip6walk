@@ -23,13 +23,13 @@ from __future__ import print_function
 import argparse
 import binascii
 import dns.exception
+import dns.flags
 import dns.inet
 import dns.resolver
 import sys
 
 nibbles = ["{0:x}".format(i) for i in range(0, 16)]
 arpa = ["ip6.arpa."]
-res = dns.resolver.Resolver()
 
 def to_ip6(host):
 	host = [list(reversed(host[i-4:i])) for i in range(32, 0, -4)]
@@ -61,6 +61,12 @@ def walk(zone, verbose=False, timeout=True):
 				print("NoAnswer", file=sys.stderr)
 
 			if len(host) < 32:
+				# If there are 3 NSEC3 records, then this is actually an NXDOMAIN
+				# If there is 1 NSEC3 record, then something does exist below
+				# Online NSEC3 may only return 1 record in all scenarios
+				#
+				# Further options for exposing data would involve creating NSEC3
+				# hashes for all nibble values and comparing them to the NSEC3 RRs
 				hosts.update(walk(host, verbose, timeout))
 		except dns.resolver.NXDOMAIN:
 			if verbose:
@@ -100,6 +106,9 @@ if __name__ == "__main__":
 	if args.resolver is not None:
 		res = dns.resolver.Resolver(configure=False)
 		res.nameservers = args.resolver
+	else:
+		res = dns.resolver.Resolver()
+	res.use_edns(0, dns.flags.DO, 4096)
 
 	hosts = walk(from_prefix(parser, args), args.verbose, not args.ignore_timeout)
 	for host in sorted(hosts.keys()):
