@@ -27,6 +27,10 @@ ip6dnshide:
 		[ This technically valid behaviour would make walking the zone
 		impractical. It'd be mislead into thinking all possible IPs
 		exist. ]
+	
+	Note:
+		If the zone is DNSSEC signed then the use of offline signed
+		NSEC3 allows it to be walked even if the NOERROR trick is used.
 
 Credits:
 	Roland Dobbins
