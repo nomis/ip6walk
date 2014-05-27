@@ -35,7 +35,6 @@ def to_ip6(host):
 	return ":".join(["".join(block) for block in host])
 
 def walk(zone, verbose=False, timeout=True):
-	global res
 	hosts = {}
 	for nibble in nibbles:
 		try:
